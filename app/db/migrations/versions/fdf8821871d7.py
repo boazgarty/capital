@@ -200,25 +200,31 @@ def add_tags(tags, article_id):
     for tag in tags:
         exists = False
         res = connection.execute(
-            f"""
+            sa.text("""
             SELECT * from tags 
-            WHERE tag = '{tag}'
+            WHERE tag = :tag
 
-        """)
+        """),
+            {"tag": tag},
+        )
         for row in res:
             if row['tag']:
                 exists = True
         if not exists:
-            op.execute(
-                f"""    
+            connection.execute(
+                sa.text("""    
                 INSERT INTO tags(tag)
-                VALUES('{tag}')
-            """)
-        op.execute(
-            f"""    
+                VALUES(:tag)
+            """),
+                {"tag": tag},
+            )
+        connection.execute(
+            sa.text("""    
             INSERT INTO articles_to_tags(article_id, tag)
-            VALUES('{article_id}', '{tag}')
-        """)
+            VALUES(:article_id, :tag)
+        """),
+            {"article_id": article_id, "tag": tag},
+        )
 
 
 def create_new_user(username, email, password, admin=False, image="") -> None:
