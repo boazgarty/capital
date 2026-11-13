@@ -200,11 +200,7 @@ def add_tags(tags, article_id):
     for tag in tags:
         exists = False
         res = connection.execute(
-            sa.text("""
-            SELECT * from tags 
-            WHERE tag = :tag
-
-        """),
+            sa.text("SELECT * FROM tags WHERE tag = :tag"),
             {"tag": tag},
         )
         for row in res:
@@ -212,20 +208,15 @@ def add_tags(tags, article_id):
                 exists = True
         if not exists:
             connection.execute(
-                sa.text("""    
-                INSERT INTO tags(tag)
-                VALUES(:tag)
-            """),
+                sa.text("INSERT INTO tags(tag) VALUES(:tag)"),
                 {"tag": tag},
             )
         connection.execute(
-            sa.text("""    
-            INSERT INTO articles_to_tags(article_id, tag)
-            VALUES(:article_id, :tag)
-        """),
+            sa.text(
+                "INSERT INTO articles_to_tags(article_id, tag) VALUES(:article_id, :tag)"
+            ),
             {"article_id": article_id, "tag": tag},
         )
-
 
 def create_new_user(username, email, password, admin=False, image="") -> None:
     salt = security.generate_salt()
