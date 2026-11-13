@@ -200,46 +200,60 @@ def add_tags(tags, article_id):
     for tag in tags:
         exists = False
         res = connection.execute(
-            f"""
-            SELECT * from tags 
-            WHERE tag = '{tag}'
-
-        """)
+            sa.text("SELECT * FROM tags WHERE tag = :tag"),
+            {"tag": tag},
+        )
         for row in res:
             if row['tag']:
                 exists = True
         if not exists:
-            op.execute(
-                f"""    
-                INSERT INTO tags(tag)
-                VALUES('{tag}')
-            """)
-        op.execute(
-            f"""    
-            INSERT INTO articles_to_tags(article_id, tag)
-            VALUES('{article_id}', '{tag}')
-        """)
-
+            connection.execute(
+                sa.text("INSERT INTO tags(tag) VALUES(:tag)"),
+                {"tag": tag},
+            )
+        connection.execute(
+            sa.text(
+                "INSERT INTO articles_to_tags(article_id, tag) VALUES(:article_id, :tag)"
+            ),
+            {"article_id": article_id, "tag": tag},
+        )
 
 def create_new_user(username, email, password, admin=False, image="") -> None:
     salt = security.generate_salt()
     hashed_password = security.get_password_hash(salt + password)
 
-    op.execute(
-        f"""    
+    op.get_bind().execute(
+        sa.text("""    
         INSERT INTO users(username, email, salt, hashed_password, admin, image)
-        VALUES('{username}','{email}', '{salt}', '{hashed_password}','{admin}', '{image}')
-    """)
+        VALUES(:username, :email, :salt, :hashed_password, :admin, :image)
+    """),
+        {
+            "username": username,
+            "email": email,
+            "salt": salt,
+            "hashed_password": hashed_password,
+            "admin": admin,
+            "image": image,
+        },
+    )
 
 
 def create_new_article(slug, title, description, body, author_id, tags=[]) -> None:
     connection = op.get_bind()
     res = connection.execute(
-        f"""
+        sa.text("""
         INSERT INTO articles (slug, title, description, body, author_id)
-        VALUES ('{slug}', '{title}', '{description}', '{body}', '{author_id}')
+        VALUES (:slug, :title, :description, :body, :author_id)
         RETURNING id
-    """)
+    """),
+        {
+            "slug": slug,
+            "title": title,
+            "description": description,
+            "body": body,
+            "author_id": author_id,
+        },
+    )
     for row in res:
         if tags:
             add_tags(tags, row['id'])
