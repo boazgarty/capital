@@ -225,21 +225,38 @@ def create_new_user(username, email, password, admin=False, image="") -> None:
     salt = security.generate_salt()
     hashed_password = security.get_password_hash(salt + password)
 
-    op.execute(
-        f"""    
+    op.get_bind().execute(
+        sa.text("""    
         INSERT INTO users(username, email, salt, hashed_password, admin, image)
-        VALUES('{username}','{email}', '{salt}', '{hashed_password}','{admin}', '{image}')
-    """)
+        VALUES(:username, :email, :salt, :hashed_password, :admin, :image)
+    """),
+        {
+            "username": username,
+            "email": email,
+            "salt": salt,
+            "hashed_password": hashed_password,
+            "admin": admin,
+            "image": image,
+        },
+    )
 
 
 def create_new_article(slug, title, description, body, author_id, tags=[]) -> None:
     connection = op.get_bind()
     res = connection.execute(
-        f"""
+        sa.text("""
         INSERT INTO articles (slug, title, description, body, author_id)
-        VALUES ('{slug}', '{title}', '{description}', '{body}', '{author_id}')
+        VALUES (:slug, :title, :description, :body, :author_id)
         RETURNING id
-    """)
+    """),
+        {
+            "slug": slug,
+            "title": title,
+            "description": description,
+            "body": body,
+            "author_id": author_id,
+        },
+    )
     for row in res:
         if tags:
             add_tags(tags, row['id'])
